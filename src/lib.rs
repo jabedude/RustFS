@@ -6,8 +6,9 @@ mod directory;
 mod file;
 mod inode;
 
-use file::{File, FileHandle};
+use file::{RcInode, File, FileHandle};
 use file::File::{EmptyFile, DataFile, Directory};
+use time::Timespec;
 use std::rc::Rc;
 use std::cell::{RefCell};
 use std::collections::HashMap;
@@ -81,6 +82,18 @@ impl<'r> Proc<'r> {
     }
   }
 
+  //pub fn get_inode_rc<'a>(&'a self) -> &'a RcInode {
+  //pub fn get_inode_rc(&mut self, fd: FileDescriptor) -> RcInode {
+  //  let handle = self.fd_table.get_mut(&fd).expect("fd does not exist");
+  //  handle.file.get_inode_rc()
+  //}
+
+  pub fn get_stats(&mut self, fd: FileDescriptor) -> (Timespec, Timespec, Timespec) {
+    let handle = self.fd_table.get_mut(&fd).expect("fd does not exist");
+    let inode = handle.file.get_inode_rc();
+    inode.borrow().stat()
+  }
+
   pub fn read(&self, fd: FileDescriptor, dst: &mut [u8]) -> Result<usize> {
     let handle = match self.fd_table.get(&fd) {
         Some(h) => h,
@@ -144,6 +157,27 @@ mod proc_tests {
     for i in 0..first.len() {
       assert_eq!(first[i], second[i]);
     }
+  }
+
+  #[test]
+  fn test_inode_stat_time() {
+    const SIZE: usize = 4096 * 8 + 3434;
+    let mut p = Proc::new();
+    let data = rand_array(SIZE);
+    let mut buf = [0u8; SIZE];
+    let filename = "first_file";
+
+    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
+
+    let (ctime, atime, mtime) = p.get_stats(fd);
+    // All three timestamps should be equal after creation.
+    assert_eq!((ctime, atime), (atime, mtime));
+
+    p.write(fd, &data);
+    p.seek(fd, 0, SeekSet);
+    p.read(fd, &mut buf);
+
+    println!("fd stats: {:?}", p.get_stats(fd));
   }
 
   #[test]

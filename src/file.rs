@@ -21,7 +21,7 @@ pub enum File<'r> {
 
 #[derive(Clone)]
 pub struct FileHandle<'r> {
-  file: File<'r>,
+  pub(crate) file: File<'r>,
   seek: Cell<usize>
 }
 
