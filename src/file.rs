@@ -9,8 +9,8 @@ use self::File::{DataFile, Directory};
 pub type RcDirContent<'r> = Rc<RefCell<Box<DirectoryContent<'r>>>>;
 pub type RcInode = Rc<RefCell<Box<Inode>>>;
 
-// File is a thing wrapper around Inodes and Directories. The whole point is to
-// provide a layer of indirection. FileHandle's and Directory entries, then,
+// File is a thin wrapper around Inodes and Directories. The whole point is to
+// provide a layer of indirection. FileHandles and Directory entries, then,
 // point to these guys instead of directly to Inodes/Directories
 #[derive(Clone)]
 pub enum File<'r> {

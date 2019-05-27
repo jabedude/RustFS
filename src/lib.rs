@@ -11,6 +11,7 @@ use file::File::{EmptyFile, DataFile, Directory};
 use std::rc::Rc;
 use std::cell::{RefCell};
 use std::collections::HashMap;
+use std::io::{Result, Error, ErrorKind};
 use directory::DirectoryHandle;
 pub use file::Whence;
 pub use inode::Inode;
@@ -51,7 +52,7 @@ impl<'r> Proc<'r> {
     }
   }
 
-  pub fn open(&mut self, path: &'r str, flags: FileFlags) -> FileDescriptor {
+  pub fn open(&mut self, path: &'r str, flags: FileFlags) -> Result<FileDescriptor> {
     let lookup = self.cwd.get(path);
     let file = match lookup {
       Some(f) => f,
@@ -73,16 +74,19 @@ impl<'r> Proc<'r> {
         let fd = Proc::extract_fd(&self.fds.pop());
         let handle = FileHandle::new(file);
         self.fd_table.insert(fd, handle);
-        fd
+        Ok(fd)
       }
-      Directory(_) => -1,
-      EmptyFile => -2,
+      Directory(_) => Err(Error::new(ErrorKind::Other, "Directory")),
+      EmptyFile => Err(Error::new(ErrorKind::Other, "EmptyFile")),
     }
   }
 
-  pub fn read(&self, fd: FileDescriptor, dst: &mut [u8]) -> usize {
-    let handle = self.fd_table.get(&fd).expect("fd does not exist");
-    handle.read(dst)
+  pub fn read(&self, fd: FileDescriptor, dst: &mut [u8]) -> Result<usize> {
+    let handle = match self.fd_table.get(&fd) {
+        Some(h) => h,
+        None => return Err(Error::new(ErrorKind::NotFound, "fd not found")),
+    };
+    Ok(handle.read(dst))
   }
 
   pub fn write(&mut self, fd: FileDescriptor, src: &[u8]) -> usize {
@@ -150,14 +154,14 @@ mod proc_tests {
     let mut buf = [0u8; SIZE];
     let filename = "first_file";
 
-    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT);
+    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
     p.write(fd, &data);
     p.seek(fd, 0, SeekSet);
     p.read(fd, &mut buf);
 
     assert_eq_buf(&data, &buf);
 
-    let fd2 = p.open(filename, FileFlags::O_RDWR);
+    let fd2 = p.open(filename, FileFlags::O_RDWR).expect("open failed!");
     let mut buf2 = [0u8; SIZE];
     p.read(fd2, &mut buf2);
 
@@ -166,7 +170,7 @@ mod proc_tests {
     p.close(fd);
     p.close(fd2);
 
-    let fd3 = p.open(filename, FileFlags::O_RDWR);
+    let fd3 = p.open(filename, FileFlags::O_RDWR).expect("open failed!");
     let mut buf3 = [0u8; SIZE];
     p.read(fd3, &mut buf3);
 
@@ -176,7 +180,7 @@ mod proc_tests {
     p.unlink(filename);
 
     let fd4 = p.open(filename, FileFlags::O_RDWR);
-    assert_eq!(fd4, -2);
+    assert!(fd4.is_err());
   }
 
   #[test]
@@ -190,7 +194,7 @@ mod proc_tests {
     let mut p = Proc::new();
     let mut data = rand_array(SIZE);
 
-    let fd = p.open("file", FileFlags::O_RDWR | FileFlags::O_CREAT);
+    let fd = p.open("file", FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
     p.write(fd, &mut data);
   }
 
@@ -216,7 +220,7 @@ mod proc_tests {
     let mut buf = [0u8; SIZE];
     let filename = "first_file";
 
-    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT);
+    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
     p.write(fd, &mut data);
     p.seek(fd, 0, SeekSet);
     p.read(fd, &mut buf);
@@ -245,7 +249,7 @@ mod proc_tests {
     let mut buf = [0u8; SIZE];
     let filename = "first_file";
 
-    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT);
+    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
     p.write(fd, &mut data);
     p.seek(fd, 0, SeekSet);
     p.read(fd, &mut buf);
@@ -256,7 +260,7 @@ mod proc_tests {
     p.unlink(filename);
 
     let fd4 = p.open(filename, FileFlags::O_RDWR);
-    assert_eq!(fd4, -2);
+    assert!(fd4.is_err());
   }
 
   #[test]
@@ -268,7 +272,7 @@ mod proc_tests {
     let mut buf = vec![0; SIZE];
     let filename = "first_file";
 
-    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT);
+    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
     p.write(fd, &mut data1);
     p.seek(fd, 4096 * 257 * 256 - SIZE as isize, SeekSet);
     p.write(fd, &mut data2);
@@ -290,7 +294,7 @@ mod proc_tests {
     let mut data = rand_array(SIZE);
     let filename = "first_file";
 
-    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT);
+    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
     p.write(fd, &mut data);
     p.seek(fd, 4096 * 257 * 256 + 1 - SIZE as isize, SeekSet);
     p.write(fd, &mut data);
