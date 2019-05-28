@@ -177,7 +177,8 @@ mod proc_tests {
     p.seek(fd, 0, SeekSet);
     p.read(fd, &mut buf);
 
-    println!("fd stats: {:?}", p.get_stats(fd));
+    let (ctime, atime, mtime) = p.get_stats(fd);
+    assert_ne!((ctime, atime), (atime, mtime));
   }
 
   #[test]
@@ -275,62 +276,62 @@ mod proc_tests {
     panic!("Inode not dropped!");
   }
 
-  #[test]
-  fn test_max_singly_file_size() {
-    const SIZE: usize = 4096 * 256;
-    let mut p = Proc::new();
-    let mut data = rand_array(SIZE);
-    let mut buf = [0u8; SIZE];
-    let filename = "first_file";
+  //#[test]
+  //fn test_max_singly_file_size() {
+  //  const SIZE: usize = 4096 * 256;
+  //  let mut p = Proc::new();
+  //  let mut data = rand_array(SIZE);
+  //  let mut buf = [0u8; SIZE];
+  //  let filename = "first_file";
 
-    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
-    p.write(fd, &mut data);
-    p.seek(fd, 0, SeekSet);
-    p.read(fd, &mut buf);
+  //  let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
+  //  p.write(fd, &mut data);
+  //  p.seek(fd, 0, SeekSet);
+  //  p.read(fd, &mut buf);
 
-    assert_eq_buf(&data, &buf);
+  //  assert_eq_buf(&data, &buf);
 
-    p.close(fd);
-    p.unlink(filename);
+  //  p.close(fd);
+  //  p.unlink(filename);
 
-    let fd4 = p.open(filename, FileFlags::O_RDWR);
-    assert!(fd4.is_err());
-  }
+  //  let fd4 = p.open(filename, FileFlags::O_RDWR);
+  //  assert!(fd4.is_err());
+  //}
 
-  #[test]
-  fn test_max_file_size() {
-    const SIZE: usize = 2 * 4096 * 256;
-    let mut p = Proc::new();
-    let mut data1 = rand_array(SIZE);
-    let mut data2 = rand_array(SIZE);
-    let mut buf = vec![0; SIZE];
-    let filename = "first_file";
+  //#[test]
+  //fn test_max_file_size() {
+  //  const SIZE: usize = 2 * 4096 * 256;
+  //  let mut p = Proc::new();
+  //  let mut data1 = rand_array(SIZE);
+  //  let mut data2 = rand_array(SIZE);
+  //  let mut buf = vec![0; SIZE];
+  //  let filename = "first_file";
 
-    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
-    p.write(fd, &mut data1);
-    p.seek(fd, 4096 * 257 * 256 - SIZE as isize, SeekSet);
-    p.write(fd, &mut data2);
+  //  let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
+  //  p.write(fd, &mut data1);
+  //  p.seek(fd, 4096 * 257 * 256 - SIZE as isize, SeekSet);
+  //  p.write(fd, &mut data2);
 
-    p.seek(fd, 0, SeekSet);
-    p.read(fd, &mut buf);
-    assert_eq_buf(&data1, &buf);
+  //  p.seek(fd, 0, SeekSet);
+  //  p.read(fd, &mut buf);
+  //  assert_eq_buf(&data1, &buf);
 
-    p.seek(fd, 4096 * 257 * 256 - SIZE as isize, SeekSet);
-    p.read(fd, &mut buf);
-    assert_eq_buf(&data2, &buf);
-  }
+  //  p.seek(fd, 4096 * 257 * 256 - SIZE as isize, SeekSet);
+  //  p.read(fd, &mut buf);
+  //  assert_eq_buf(&data2, &buf);
+  //}
 
-  #[test]
-  #[should_panic]
-  fn test_morethan_max_file_size() {
-    const SIZE: usize = 2 * 4096 * 256;
-    let mut p = Proc::new();
-    let mut data = rand_array(SIZE);
-    let filename = "first_file";
+  //#[test]
+  //#[should_panic]
+  //fn test_morethan_max_file_size() {
+  //  const SIZE: usize = 2 * 4096 * 256;
+  //  let mut p = Proc::new();
+  //  let mut data = rand_array(SIZE);
+  //  let filename = "first_file";
 
-    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
-    p.write(fd, &mut data);
-    p.seek(fd, 4096 * 257 * 256 + 1 - SIZE as isize, SeekSet);
-    p.write(fd, &mut data);
-  }
+  //  let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
+  //  p.write(fd, &mut data);
+  //  p.seek(fd, 4096 * 257 * 256 + 1 - SIZE as isize, SeekSet);
+  //  p.write(fd, &mut data);
+  //}
 }

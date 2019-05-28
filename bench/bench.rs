@@ -2,7 +2,7 @@ extern crate bench;
 extern crate rustfs;
 extern crate rand;
 
-use rustfs::{Proc, O_CREAT, O_RDWR, FileDescriptor};
+use rustfs::{Proc, FileFlags, FileDescriptor};
 use std::string::String;
 use bench::{benchmark, Benchmarker};
 use rand::random;
@@ -31,7 +31,7 @@ macro_rules! bench_many {
       b.run(|| {
         for i_j in 0..NUM {
           let $filename = &filenames[i_j];
-          let $fd = $p.open($filename, O_CREAT | O_RDWR);
+          let $fd = $p.open($filename, FileFlags::O_CREAT | FileFlags::O_RDWR).unwrap();
           $op
         }
       });
@@ -66,7 +66,7 @@ fn generate_names(n: usize) -> Vec<String> {
 
 fn open_many<'a>(p: &mut Proc<'a>, names: &'a Vec<String>) -> Vec<FileDescriptor> {
   (0..names.len()).map(|i| {
-    let fd = p.open(&names[i], O_CREAT | O_RDWR);
+    let fd = p.open(&names[i], FileFlags::O_CREAT | FileFlags::O_RDWR).unwrap();
     fd
   }).collect()
 }
@@ -86,7 +86,7 @@ fn unlink_all<'a>(p: &mut Proc<'a>, names: &'a Vec<String>) {
 #[allow(non_snake_case)]
 fn main() {
   bench!(bench_OC1, OC1, 1, |p, _n| {
-    let fd = p.open("test", O_CREAT);
+    let fd = p.open("test", FileFlags::O_CREAT).unwrap();
     p.close(fd);
   });
 
