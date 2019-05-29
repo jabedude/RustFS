@@ -82,16 +82,14 @@ impl<'r> Proc<'r> {
     }
   }
 
-  //pub fn get_inode_rc<'a>(&'a self) -> &'a RcInode {
-  //pub fn get_inode_rc(&mut self, fd: FileDescriptor) -> RcInode {
-  //  let handle = self.fd_table.get_mut(&fd).expect("fd does not exist");
-  //  handle.file.get_inode_rc()
-  //}
-
   pub fn get_stats(&mut self, fd: FileDescriptor) -> (Timespec, Timespec, Timespec) {
     let handle = self.fd_table.get_mut(&fd).expect("fd does not exist");
     let inode = handle.file.get_inode_rc();
     inode.borrow().stat()
+  }
+
+  pub fn rename(&mut self, old_path: &str, new_path: &str) -> Result<()> {
+    unimplemented!();
   }
 
   pub fn read(&self, fd: FileDescriptor, dst: &mut [u8]) -> Result<usize> {
