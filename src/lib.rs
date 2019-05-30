@@ -30,6 +30,7 @@ bitflags!{
     }
 }
 
+//TODO: paths ("/dir/datafile")
 pub struct Proc<'r> {
   cwd: File<'r>,
   fd_table: HashMap<FileDescriptor, FileHandle<'r>>,
@@ -98,10 +99,9 @@ impl<'r> Proc<'r> {
     }
       None => Err(Error::new(ErrorKind::NotFound, "fd not found")),
     }
-
   }
 
-  pub fn chdir(&mut self, new_dir: &'r str) -> Result<()> {
+  pub fn chdir(&mut self, new_path: &'r str) -> Result<()> {
     unimplemented!();
   }
 
