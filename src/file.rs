@@ -96,7 +96,7 @@ impl<'r> FileHandle<'r> {
   pub fn write(&mut self, src: &[u8]) -> usize {
     let offset = self.seek.get();
     let inode_rc = self.file.get_inode_rc();
-    let changed = inode_rc.borrow_mut().write(offset, src);
+    let changed = inode_rc.borrow_mut().write(offset, src).unwrap();
     self.seek.set(offset + changed);
     changed
   }

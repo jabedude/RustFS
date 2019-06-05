@@ -159,24 +159,24 @@ fn main() {
     p.unlink(filename);
   });
 
-  let (size, many) = (1048576, 32);
-  let content = rand_array(size);
-  bench_many!(bench_OWMbC, OWMbC, 5000, |p, fd, filename| {
-    for _ in 0..many {
-      p.write(fd, &content);
-    }
-    p.close(fd);
-  });
+  //let (size, many) = (1048576, 32);
+  //let content = rand_array(size);
+  //bench_many!(bench_OWMbC, OWMbC, 5000, |p, fd, filename| {
+  //  for _ in 0..many {
+  //    p.write(fd, &content);
+  //  }
+  //  p.close(fd);
+  //});
 
-  let (size, many) = (1048576, 32);
-  let content = rand_array(size);
-  bench_many!(bench_OWMbCU, OWMbCU, 7000, |p, fd, filename| {
-    for _ in 0..many {
-      p.write(fd, &content);
-    }
-    p.close(fd);
-    p.unlink(filename);
-  });
+  //let (size, many) = (1048576, 32);
+  //let content = rand_array(size);
+  //bench_many!(bench_OWMbCU, OWMbCU, 7000, |p, fd, filename| {
+  //  for _ in 0..many {
+  //    p.write(fd, &content);
+  //  }
+  //  p.close(fd);
+  //  p.unlink(filename);
+  //});
 
   let (start_size, many) = (2, 4096);
   let content = rand_array(start_size * many);

@@ -3,9 +3,11 @@ use time::Timespec;
 use std::mem;
 use std::ptr;
 use std::ptr::copy_nonoverlapping;
+use std::io::{Result, Error, ErrorKind};
 
 const PAGE_SIZE: usize = 4096;
 const LIST_SIZE: usize = 256;
+const FILE_SIZE: usize = 8388608;
 
 type Page = Box<([u8; PAGE_SIZE])>;
 type Entry = Page;
@@ -26,18 +28,18 @@ pub fn create_tlist<T>() -> TList<T> {
 }
 
 pub struct Inode {
-  store: Vec<u8>,
-  size: usize,
+    store: Vec<u8>,
+    size: usize,
 
-  mod_time: Timespec,
-  access_time: Timespec,
-  create_time: Timespec,
+    mod_time: Timespec,
+    access_time: Timespec,
+    create_time: Timespec,
 }
 
 impl Inode {
   pub fn new() -> Inode {
     let time_now = time::get_time();
-    let mut store = Vec::new();
+    let mut store = Vec::with_capacity(FILE_SIZE);
 
     Inode {
       store: store,
@@ -102,17 +104,24 @@ impl Inode {
   //  }
   //}
 
-  pub fn write(&mut self, offset: usize, data: &[u8]) -> usize {
-    if offset + data.len() >= self.store.len() {
-        //self.store.reserve(offset + data.len());
-        self.store.resize(offset + data.len(), b'\0');
-    }
+  pub fn write(&mut self, offset: usize, data: &[u8]) -> Result<usize> {
     //println!("************");
     //println!("offset: {}", offset);
     //println!("store.capacity: {}", self.store.capacity());
     //println!("store.len: {}", self.store.len());
     //println!("data.len: {}, offset+data.len: {}", data.len(), offset+data.len());
 
+    let end = offset + data.len();
+    //if self.store.capacity() < end {
+    //    return Err(Error::new(ErrorKind::Other, "OOM"))
+    //}
+
+    if offset + data.len() >= self.store.len() {
+        //self.store.reserve(offset + data.len());
+        self.store.resize(offset + data.len(), b'\0');
+    }
+
+    //TODO: bench this
     //self.store.extend_from_slice(data);
     let slice = &mut self.store[offset..offset+data.len()];
     unsafe {
@@ -124,7 +133,7 @@ impl Inode {
     self.mod_time = time_now;
     self.access_time = time_now;
 
-    data.len()
+    Ok(data.len())
   }
 
   pub fn read(&self, offset: usize, data: &mut [u8]) -> usize {
