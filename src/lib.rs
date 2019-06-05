@@ -30,15 +30,15 @@ bitflags!{
     }
 }
 
-pub struct Proc<'r> {
+pub struct Vfs<'r> {
   cwd: File<'r>,
   fd_table: HashMap<FileDescriptor, FileHandle<'r>>,
   fds: Vec<FileDescriptor>
 }
 
-impl<'r> Proc<'r> {
-  pub fn new() -> Proc<'r> {
-    Proc {
+impl<'r> Vfs<'r> {
+  pub fn new() -> Vfs<'r> {
+    Vfs {
       cwd: File::new_dir(None),
       fd_table: HashMap::new(),
       fds: (0..(256 - 2)).map(|i| 256 - i).collect(),
@@ -72,7 +72,7 @@ impl<'r> Proc<'r> {
 
     match file {
       DataFile(_) => {
-        let fd = Proc::extract_fd(&self.fds.pop());
+        let fd = Vfs::extract_fd(&self.fds.pop());
         let handle = FileHandle::new(file);
         self.fd_table.insert(fd, handle);
         Ok(fd)
@@ -127,7 +127,7 @@ mod proc_tests {
   // extern crate test;
   extern crate rand;
 
-  use super::{Proc, FileFlags};
+  use super::{Vfs, FileFlags};
   use file::Whence::SeekSet;
   use inode::Inode;
   use self::rand::random;
@@ -162,7 +162,7 @@ mod proc_tests {
   #[test]
   fn test_inode_stat_time() {
     const SIZE: usize = 4096 * 8 + 3434;
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let data = rand_array(SIZE);
     let mut buf = [0u8; SIZE];
     let filename = "first_file";
@@ -184,7 +184,7 @@ mod proc_tests {
   #[test]
   fn simple_test() {
     const SIZE: usize = 4096 * 8 + 3434;
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let data = rand_array(SIZE);
     let mut buf = [0u8; SIZE];
     let filename = "first_file";
@@ -226,7 +226,7 @@ mod proc_tests {
     unsafe { test_inode_drop = true; }
 
     const SIZE: usize = 4096 * 3 + 3498;
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let mut data = rand_array(SIZE);
 
     let fd = p.open("file", FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
@@ -250,7 +250,7 @@ mod proc_tests {
     unsafe { test_inode_drop = true; }
 
     const SIZE: usize = 4096 * 3 + 3498;
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let mut data = rand_array(SIZE);
     let mut buf = [0u8; SIZE];
     let filename = "first_file";
@@ -269,7 +269,7 @@ mod proc_tests {
 
     // If inode is not being dropped properly, ie, on the unlink call this will
     // cause a double failure: once for panic! call, and once when then the Inode
-    // is dropped since the Proc structure will be dropped.
+    // is dropped since the Vfs structure will be dropped.
     //
     // To test that RC is working properly, make sure that a double failure
     // occurs when either the close or unlink calls above are commented out.
@@ -279,7 +279,7 @@ mod proc_tests {
   //#[test]
   //fn test_max_singly_file_size() {
   //  const SIZE: usize = 4096 * 256;
-  //  let mut p = Proc::new();
+  //  let mut p = Vfs::new();
   //  let mut data = rand_array(SIZE);
   //  let mut buf = [0u8; SIZE];
   //  let filename = "first_file";
@@ -301,7 +301,7 @@ mod proc_tests {
   //#[test]
   //fn test_max_file_size() {
   //  const SIZE: usize = 2 * 4096 * 256;
-  //  let mut p = Proc::new();
+  //  let mut p = Vfs::new();
   //  let mut data1 = rand_array(SIZE);
   //  let mut data2 = rand_array(SIZE);
   //  let mut buf = vec![0; SIZE];
@@ -325,7 +325,7 @@ mod proc_tests {
   //#[should_panic]
   //fn test_morethan_max_file_size() {
   //  const SIZE: usize = 2 * 4096 * 256;
-  //  let mut p = Proc::new();
+  //  let mut p = Vfs::new();
   //  let mut data = rand_array(SIZE);
   //  let filename = "first_file";
 

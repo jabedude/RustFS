@@ -103,11 +103,18 @@ impl Inode {
   //}
 
   pub fn write(&mut self, offset: usize, data: &[u8]) -> usize {
-    if offset + data.len() > self.store.capacity() {
+    if offset + data.len() >= self.store.len() {
         //self.store.reserve(offset + data.len());
         self.store.resize(offset + data.len(), b'\0');
     }
-    let slice = &mut self.store[offset..data.len()];
+    //println!("************");
+    //println!("offset: {}", offset);
+    //println!("store.capacity: {}", self.store.capacity());
+    //println!("store.len: {}", self.store.len());
+    //println!("data.len: {}, offset+data.len: {}", data.len(), offset+data.len());
+
+    //self.store.extend_from_slice(data);
+    let slice = &mut self.store[offset..offset+data.len()];
     unsafe {
         let src = data.as_ptr();
         copy_nonoverlapping(src, slice.as_mut_ptr(), data.len());
