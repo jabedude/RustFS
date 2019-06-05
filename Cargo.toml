@@ -7,3 +7,10 @@ authors = ["Sergio Benitez <sb@sergio.bz>"]
 time = "0.1"
 rand = "0.3"
 bitflags = "1.0.4"
+
+[dev-dependencies]
+criterion = "0.2.11"
+
+[[bench]]
+name = "benches"
+harness = false
