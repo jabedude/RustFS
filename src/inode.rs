@@ -39,7 +39,7 @@ pub struct Inode {
 impl Inode {
   pub fn new() -> Inode {
     let time_now = time::get_time();
-    let mut store = Vec::with_capacity(FILE_SIZE);
+    let mut store = Vec::with_capacity(PAGE_SIZE);
 
     Inode {
       store: store,
