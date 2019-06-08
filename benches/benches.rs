@@ -5,7 +5,7 @@ extern crate criterion;
 
 
 use criterion::Criterion;
-use rustfs::{Proc, FileFlags, FileDescriptor};
+use rustfs::{Vfs, FileFlags, FileDescriptor};
 use std::string::String;
 use rand::random;
 use std::iter::repeat;
@@ -16,7 +16,7 @@ macro_rules! bench {
   ($wrap:ident, $name:ident, $time:expr, |$p:ident, $filenames:ident| $task:stmt) => ({
     let $filenames = generate_names(NUM);
     let $wrap = |b: &mut Benchmarker| {
-      let mut $p = Proc::new();
+      let mut $p = Vfs::new();
       b.run(|| {
         $task
       });
@@ -26,13 +26,13 @@ macro_rules! bench {
 }
 
 fn open_close_one() {
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let fd = p.open("test", FileFlags::O_CREAT).unwrap();
     p.close(fd);
 }
 
 fn open_close_unlink() {
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let filenames = generate_names(NUM);
     let fds = open_many(&mut p, &filenames);
     close_all(&mut p, &fds);
@@ -40,7 +40,7 @@ fn open_close_unlink() {
 }
 
 fn open_write_close_unlink(content: &[u8]) {
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let filenames = generate_names(NUM);
     let fds = open_many(&mut p, &filenames);
     for i in 0..NUM {
@@ -52,7 +52,7 @@ fn open_write_close_unlink(content: &[u8]) {
 }
 
 fn open_write_large_close(content: &[u8]) {
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let filenames = generate_names(NUM);
     let fds = open_many(&mut p, &filenames);
     for i in 0..NUM {
@@ -64,7 +64,7 @@ fn open_write_large_close(content: &[u8]) {
 }
 
 fn open_write_large_close_unlink(content: &[u8]) {
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let filenames = generate_names(NUM);
     let fds = open_many(&mut p, &filenames);
     for i in 0..NUM {
@@ -77,7 +77,7 @@ fn open_write_large_close_unlink(content: &[u8]) {
 }
 
 fn open_write_modify_small_close(content: &[u8]) {
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let filenames = generate_names(NUM);
     let fds = open_many(&mut p, &filenames);
     for i in 0..NUM {
@@ -91,7 +91,7 @@ fn open_write_modify_small_close(content: &[u8]) {
 }
 
 fn open_write_modify_small_close_unlink(content: &[u8]) {
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let filenames = generate_names(NUM);
     let fds = open_many(&mut p, &filenames);
     for i in 0..NUM {
@@ -106,7 +106,7 @@ fn open_write_modify_small_close_unlink(content: &[u8]) {
 }
 
 fn open_write_modify_big_close(content: &[u8]) {
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let filenames = generate_names(NUM);
     let fds = open_many(&mut p, &filenames);
     for i in 0..NUM {
@@ -120,7 +120,7 @@ fn open_write_modify_big_close(content: &[u8]) {
 }
 
 fn open_write_modify_big_close_unlink(content: &[u8]) {
-    let mut p = Proc::new();
+    let mut p = Vfs::new();
     let filenames = generate_names(NUM);
     let fds = open_many(&mut p, &filenames);
     for i in 0..NUM {
@@ -138,7 +138,7 @@ macro_rules! bench_many {
   ($wrap:ident, $name:ident, $time:expr, |$p:ident, $fd:ident, $filename:ident| $op:stmt) => ({
     let filenames = generate_names(NUM);
     let $wrap = |b: &mut Benchmarker| {
-      let mut $p = Proc::new();
+      let mut $p = Vfs::new();
       b.run(|| {
         for i_j in 0..NUM {
           let $filename = &filenames[i_j];
@@ -149,6 +149,10 @@ macro_rules! bench_many {
     };
     benchmark(stringify!($name), $wrap, $time);
   })
+}
+
+fn ceil_div(x:usize, y: usize) -> usize {
+    return (x + y - 1) / y;
 }
 
 fn rand_array(size: usize) -> Vec<u8> {
@@ -171,20 +175,20 @@ fn generate_names(n: usize) -> Vec<String> {
   }).collect()
 }
 
-fn open_many<'a>(p: &mut Proc<'a>, names: &'a Vec<String>) -> Vec<FileDescriptor> {
+fn open_many<'a>(p: &mut Vfs<'a>, names: &'a Vec<String>) -> Vec<FileDescriptor> {
   (0..names.len()).map(|i| {
     let fd = p.open(&names[i], FileFlags::O_CREAT | FileFlags::O_RDWR).unwrap();
     fd
   }).collect()
 }
 
-fn close_all(p: &mut Proc, fds: &Vec<FileDescriptor>) {
+fn close_all(p: &mut Vfs, fds: &Vec<FileDescriptor>) {
   for fd in fds.iter() {
     p.close(*fd);
   }
 }
 
-fn unlink_all<'a>(p: &mut Proc<'a>, names: &'a Vec<String>) {
+fn unlink_all<'a>(p: &mut Vfs<'a>, names: &'a Vec<String>) {
   for filename in names.iter() {
     p.unlink(&filename);
   }
