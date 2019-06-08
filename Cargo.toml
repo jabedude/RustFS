@@ -2,6 +2,7 @@
 name = "rustfs"
 version = "0.1.0"
 authors = ["Sergio Benitez <sb@sergio.bz>"]
+edition = "2018"
 
 [dependencies]
 time = "0.1"

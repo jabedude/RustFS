@@ -1,5 +1,5 @@
-use file::File;
-use file::File::Directory;
+use crate::file::File;
+use crate::file::File::Directory;
 
 pub trait DirectoryHandle<'r>: Sized {
   fn is_dir(&self) -> bool;

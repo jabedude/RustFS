@@ -1,9 +1,8 @@
-extern crate time;
-
+use time;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::{Cell, RefCell};
-use inode::{Inode};
+use crate::inode::{Inode};
 use self::File::{DataFile, Directory};
 
 pub type RcDirContent<'r> = Rc<RefCell<Box<DirectoryContent<'r>>>>;
