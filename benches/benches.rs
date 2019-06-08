@@ -51,6 +51,89 @@ fn open_write_close_unlink(content: &[u8]) {
     }
 }
 
+fn open_write_large_close(content: &[u8]) {
+    let mut p = Proc::new();
+    let filenames = generate_names(NUM);
+    let fds = open_many(&mut p, &filenames);
+    for i in 0..NUM {
+        let filename = &filenames[i];
+        let fd = p.open(filename, FileFlags::O_CREAT | FileFlags::O_RDWR).unwrap();
+        p.write(fd, content);
+        p.close(fd);
+    }
+}
+
+fn open_write_large_close_unlink(content: &[u8]) {
+    let mut p = Proc::new();
+    let filenames = generate_names(NUM);
+    let fds = open_many(&mut p, &filenames);
+    for i in 0..NUM {
+        let filename = &filenames[i];
+        let fd = p.open(filename, FileFlags::O_CREAT | FileFlags::O_RDWR).unwrap();
+        p.write(fd, content);
+        p.close(fd);
+        p.unlink(filename);
+    }
+}
+
+fn open_write_modify_small_close(content: &[u8]) {
+    let mut p = Proc::new();
+    let filenames = generate_names(NUM);
+    let fds = open_many(&mut p, &filenames);
+    for i in 0..NUM {
+        let filename = &filenames[i];
+        let fd = p.open(filename, FileFlags::O_CREAT | FileFlags::O_RDWR).unwrap();
+        for _ in 0..100 {
+            p.write(fd, content);
+        }
+        p.close(fd);
+    }
+}
+
+fn open_write_modify_small_close_unlink(content: &[u8]) {
+    let mut p = Proc::new();
+    let filenames = generate_names(NUM);
+    let fds = open_many(&mut p, &filenames);
+    for i in 0..NUM {
+        let filename = &filenames[i];
+        let fd = p.open(filename, FileFlags::O_CREAT | FileFlags::O_RDWR).unwrap();
+        for _ in 0..100 {
+            p.write(fd, content);
+        }
+        p.close(fd);
+        p.unlink(filename);
+    }
+}
+
+fn open_write_modify_big_close(content: &[u8]) {
+    let mut p = Proc::new();
+    let filenames = generate_names(NUM);
+    let fds = open_many(&mut p, &filenames);
+    for i in 0..NUM {
+        let filename = &filenames[i];
+        let fd = p.open(filename, FileFlags::O_CREAT | FileFlags::O_RDWR).unwrap();
+        for _ in 0..32 {
+            p.write(fd, content);
+        }
+        p.close(fd);
+    }
+}
+
+fn open_write_modify_big_close_unlink(content: &[u8]) {
+    let mut p = Proc::new();
+    let filenames = generate_names(NUM);
+    let fds = open_many(&mut p, &filenames);
+    for i in 0..NUM {
+        let filename = &filenames[i];
+        let fd = p.open(filename, FileFlags::O_CREAT | FileFlags::O_RDWR).unwrap();
+        for _ in 0..32 {
+            p.write(fd, content);
+        }
+        p.close(fd);
+        p.unlink(filename);
+    }
+}
+
 macro_rules! bench_many {
   ($wrap:ident, $name:ident, $time:expr, |$p:ident, $fd:ident, $filename:ident| $op:stmt) => ({
     let filenames = generate_names(NUM);
@@ -66,10 +149,6 @@ macro_rules! bench_many {
     };
     benchmark(stringify!($name), $wrap, $time);
   })
-}
-
-fn ceil_div(x: usize, y: usize) -> usize {
-  return (x + y - 1) / y;
 }
 
 fn rand_array(size: usize) -> Vec<u8> {
@@ -125,7 +204,43 @@ fn bench_OWsCU(c: &mut Criterion) {
     c.bench_function("Open Write Close Unlink", move |b| b.iter(|| open_write_close_unlink(&content)));
 }
 
-criterion_group!(benches, criterion_benchmark, bench_OtCtU, bench_OWsCU);
+fn bench_OWbC(c: &mut Criterion) {
+    let size = 40960;
+    let content = rand_array(size);
+    c.bench_function("Open Write Large Close", move |b| b.iter(|| open_write_large_close(&content)));
+}
+
+fn bench_OWbCU(c: &mut Criterion) {
+    let size = 40960;
+    let content = rand_array(size);
+    c.bench_function("Open Write Large Close Unlink", move |b| b.iter(|| open_write_large_close_unlink(&content)));
+}
+
+fn bench_OWMsC(c: &mut Criterion) {
+    let size = 1024;
+    let content = rand_array(size);
+    c.bench_function("Open Write Modify Small Close", move |b| b.iter(|| open_write_modify_small_close(&content)));
+}
+
+fn bench_OWMsCU(c: &mut Criterion) {
+    let size = 1024;
+    let content = rand_array(size);
+    c.bench_function("Open Write Modify Small Close Unlink", move |b| b.iter(|| open_write_modify_small_close_unlink(&content)));
+}
+
+fn bench_OWMbC(c: &mut Criterion) {
+    let size = 1048576;
+    let content = rand_array(size);
+    c.bench_function("Open Write Modify big Close", move |b| b.iter(|| open_write_modify_big_close(&content)));
+}
+
+fn bench_OWMbCU(c: &mut Criterion) {
+    let size = 1048576;
+    let content = rand_array(size);
+    c.bench_function("Open Write Modify big Close Unlink", move |b| b.iter(|| open_write_modify_big_close_unlink(&content)));
+}
+
+criterion_group!(benches, criterion_benchmark, bench_OtCtU, bench_OWsCU, bench_OWbC, bench_OWbCU, bench_OWMsC, bench_OWMsCU, bench_OWMbC);
 criterion_main!(benches);
 
 //#[allow(non_snake_case)]
@@ -146,82 +261,3 @@ criterion_main!(benches);
 //    p.write(fd, &content);
 //    p.close(fd);
 //  });
-//
-//  let size = 1024;
-//  let content = rand_array(size);
-//  bench_many!(bench_OWsCU, OWsCU, 100, |p, fd, filename| {
-//    p.write(fd, &content);
-//    p.close(fd);
-//    p.unlink(filename);
-//  });
-//
-//  let size = 40960;
-//  let content = rand_array(size);
-//  bench_many!(bench_OWbC, OWbC, 100, |p, fd, filename| {
-//    p.write(fd, &content);
-//    p.close(fd);
-//  });
-//
-//  let size = 40960;
-//  let content = rand_array(size);
-//  bench_many!(bench_OWbCU, OWbCU, 100, |p, fd, filename| {
-//    p.write(fd, &content);
-//    p.close(fd);
-//    p.unlink(filename);
-//  });
-//
-//  let (size, many) = (1024, 4096);
-//  let content = rand_array(size);
-//  bench_many!(bench_OWMsC, OWMsC, 3000, |p, fd, filename| {
-//    for _ in 0..many {
-//      p.write(fd, &content);
-//    }
-//    p.close(fd);
-//  });
-//
-//  let (size, many) = (1024, 4096);
-//  let content = rand_array(size);
-//  bench_many!(bench_OWMsCU, OWMsCU, 5000, |p, fd, filename| {
-//    for _ in 0..many {
-//      p.write(fd, &content);
-//    }
-//    p.close(fd);
-//    p.unlink(filename);
-//  });
-//
-//  let (size, many) = (1048576, 32);
-//  let content = rand_array(size);
-//  bench_many!(bench_OWMbC, OWMbC, 5000, |p, fd, filename| {
-//    for _ in 0..many {
-//      p.write(fd, &content);
-//    }
-//    p.close(fd);
-//  });
-//
-//  let (size, many) = (1048576, 32);
-//  let content = rand_array(size);
-//  bench_many!(bench_OWMbCU, OWMbCU, 7000, |p, fd, filename| {
-//    for _ in 0..many {
-//      p.write(fd, &content);
-//    }
-//    p.close(fd);
-//    p.unlink(filename);
-//  });
-//
-//  let (start_size, many) = (2, 4096);
-//  let content = rand_array(start_size * many);
-//  bench_many!(bench_OWbbC, OWbbC, 5000, |p, fd, filename| {
-//    for i in 1..(many + 1) {
-//      p.write(fd, &content[..(i * start_size)]);
-//    }
-//    p.close(fd);
-//  });
-//
-//  let (start_size, many) = (2, 4096);
-//  let content = rand_array(start_size * many);
-//  bench_many!(bench_OWbbCU, OWbbCU, 7000, |p, fd, filename| {
-//    for i in 1..(many + 1) {
-//      p.write(fd, &content[0..(i * start_size)]);
-//    }
-//    p.close(fd);
-//    p.unlink(filename);
