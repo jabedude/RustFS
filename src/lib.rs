@@ -30,6 +30,7 @@ bitflags!{
     }
 }
 
+//TODO: paths ("/dir/datafile")
 pub struct Vfs<'r> {
   cwd: File<'r>,
   fd_table: HashMap<FileDescriptor, FileHandle<'r>>,
@@ -82,16 +83,26 @@ impl<'r> Vfs<'r> {
     }
   }
 
-  //pub fn get_inode_rc<'a>(&'a self) -> &'a RcInode {
-  //pub fn get_inode_rc(&mut self, fd: FileDescriptor) -> RcInode {
-  //  let handle = self.fd_table.get_mut(&fd).expect("fd does not exist");
-  //  handle.file.get_inode_rc()
-  //}
-
   pub fn get_stats(&mut self, fd: FileDescriptor) -> (Timespec, Timespec, Timespec) {
     let handle = self.fd_table.get_mut(&fd).expect("fd does not exist");
     let inode = handle.file.get_inode_rc();
     inode.borrow().stat()
+  }
+
+  pub fn rename(&mut self, old_path: &'r str, new_path: &'r str) -> Result<()> {
+    let lookup = self.cwd.get(old_path);
+    match lookup {
+      Some(f) => {
+        self.unlink(old_path);
+        self.cwd.insert(new_path, f);
+        Ok(())
+    }
+      None => Err(Error::new(ErrorKind::NotFound, "fd not found")),
+    }
+  }
+
+  pub fn chdir(&mut self, new_path: &'r str) -> Result<()> {
+    unimplemented!();
   }
 
   pub fn read(&self, fd: FileDescriptor, dst: &mut [u8]) -> Result<usize> {
@@ -157,6 +168,36 @@ mod proc_tests {
     for i in 0..first.len() {
       assert_eq!(first[i], second[i]);
     }
+  }
+
+  #[test]
+  fn test_rename_simple() {
+    const SIZE: usize = 4096 * 8 + 3434;
+    let mut p = Proc::new();
+    let data = rand_array(SIZE);
+    let mut buf = [0u8; SIZE];
+    let filename = "first_file";
+    let newname = "new_file";
+
+    let fd = p.open(filename, FileFlags::O_RDWR | FileFlags::O_CREAT).expect("open failed!");
+
+    p.write(fd, &data);
+    p.seek(fd, 0, SeekSet);
+    assert!(p.rename(filename, newname).is_ok());
+
+    p.close(fd);
+    let ret = p.open(filename, FileFlags::O_RDWR);
+    assert!(ret.is_err());
+  }
+
+  #[test]
+  fn test_rename_old_nonexistent() {
+    let mut p = Proc::new();
+    let filename = "first_file";
+    let newname = "new_file";
+
+    let ret = p.rename(filename, newname);
+    assert!(ret.is_err());
   }
 
   #[test]
