@@ -18,14 +18,14 @@ Then, import the crate into your project and bring types into the namespace:
 ```rust
 extern crate rustfs;
 
-use rustfs::{Proc, O_CREAT, O_RDWR};
+use rustfs::{Vfs, O_CREAT, O_RDWR};
 ```
 
-Finally, use `Proc::new()` to create a new `Proc`. Call `open` / `close` /
+Finally, use `Vfs::new()` to create a new `Vfs`. Call `open` / `close` /
 `seek` / `read` / `write` on it:
 
 ```rust
-let mut p = Proc::new();
+let mut p = Vfs::new();
 
 // Let's write `data` to a new file named "file".
 let data = b"... some data ...";
@@ -84,4 +84,4 @@ Directory Structure
   * directory.rs _Insert/Remove/Get directory method implementations._
   * file.rs _FileHandle implementation and structure definitions._
   * inode.rs _Inode structure and implementation._
-  * proc.rs _Proc structure (which wraps everything) and implementation._
+  * lib.rs _Vfs structure (which wraps everything) and implementation._
